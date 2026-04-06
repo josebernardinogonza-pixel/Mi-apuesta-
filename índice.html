@@ -2,145 +2,232 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BetPro Real-Time</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>BET-GOD Engine</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { background: #0f172a; color: white; font-family: sans-serif; }
-        .match-card { background: linear-gradient(145deg, #1e293b, #0f172a); border: 1px solid #334155; }
-        .loader { border-top-color: #10b981; animation: spinner 1.5s linear infinite; }
-        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background: #05070a; color: white; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
+        .tab-active { border-bottom: 3px solid #10b981; color: #10b981; }
+        .bet-card { transition: transform 0.2s; }
+        .bet-card:active { transform: scale(0.98); }
     </style>
 </head>
-<body class="p-4">
+<body class="pb-24">
 
-    <!-- Header -->
-    <header class="flex justify-between items-center mb-6 bg-[#1e293b] p-4 rounded-xl border border-green-500/30">
-        <div>
-            <h1 class="text-green-500 font-black text-xl tracking-tighter">LIVE<span class="text-white">BET</span></h1>
-            <p class="text-[10px] text-gray-400 uppercase tracking-widest">Datos Reales API</p>
+    <!-- TOP BAR -->
+    <nav class="fixed top-0 w-full glass z-50 p-4 flex justify-between items-center border-b border-white/5">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center shadow-lg shadow-green-500/50">
+                <i class="fa-solid fa-bolt text-black"></i>
+            </div>
+            <span class="font-black text-xl tracking-tighter italic underline">BET<span class="text-green-500">GOD</span></span>
         </div>
         <div class="text-right">
-            <span class="text-xs text-gray-400 block">Balance Virtual</span>
-            <span class="text-xl font-bold text-green-400">$<span id="saldo">1000</span></span>
+            <p class="text-[10px] text-gray-500 font-bold italic underline">BALANCE DISPONIBLE</p>
+            <p class="text-lg font-black text-green-400 leading-none italic underline">$<span id="saldo">0.00</span></p>
         </div>
-    </header>
+    </nav>
 
-    <!-- Configuración API -->
-    <div id="api-config" class="mb-6 p-4 bg-yellow-500/10 border border-yellow-500/50 rounded-lg">
-        <p class="text-xs mb-2 text-yellow-500 font-bold italic underline">Pega tu API KEY de the-odds-api.com:</p>
-        <div class="flex gap-2">
-            <input type="password" id="apiKey" class="bg-black/50 border border-white/20 rounded p-2 text-xs flex-1" placeholder="Tu API KEY aquí">
-            <button onclick="fetchRealOdds()" class="bg-yellow-500 text-black px-4 py-2 rounded text-xs font-bold italic underline">CONECTAR</button>
+    <!-- MAIN CONTENT -->
+    <main class="mt-24 px-4">
+        
+        <!-- API KEY INPUT (Solo se ve si no hay Key) -->
+        <div id="setup-section" class="mb-6 p-4 glass rounded-2xl">
+            <h3 class="text-sm font-bold mb-3 italic underline italic underline italic underline">Configuración de Motor Real</h3>
+            <input type="password" id="apiKey" class="w-full bg-black/40 border border-white/10 p-3 rounded-xl text-sm mb-3" placeholder="Pega tu API Key aquí...">
+            <button onclick="saveKey()" class="w-full bg-green-500 text-black font-bold p-3 rounded-xl hover:bg-green-400 transition-colors">CONECTAR A SATÉLITE</button>
         </div>
-    </div>
 
-    <!-- Filtros -->
-    <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
-        <span class="bg-green-500 text-black px-3 py-1 rounded-full text-xs font-bold">Fútbol</span>
-        <span class="bg-slate-700 px-3 py-1 rounded-full text-xs italic underline">La Liga</span>
-        <span class="bg-slate-700 px-3 py-1 rounded-full text-xs italic underline">Premier League</span>
-    </div>
+        <!-- TABS -->
+        <div class="flex gap-6 mb-6 border-b border-white/5 text-sm font-bold italic underline">
+            <button onclick="switchTab('envivo')" id="tab-envivo" class="pb-2 tab-active italic underline">CARTELERA</button>
+            <button onclick="switchTab('misapuestas')" id="tab-misapuestas" class="pb-2 text-gray-500 italic underline">MIS APUESTAS</button>
+        </div>
 
-    <!-- Lista de Partidos -->
-    <div id="loading" class="hidden flex flex-col items-center py-10">
-        <div class="loader w-10 h-10 border-4 border-slate-700 rounded-full mb-2 italic underline"></div>
-        <p class="text-xs text-gray-400 italic underline">Consultando estadios...</p>
-    </div>
+        <!-- SECCIÓN: CARTELERA -->
+        <section id="sec-envivo" class="space-y-4">
+            <div id="loader" class="hidden text-center py-10 italic underline">
+                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-green-500"></i>
+                <p class="mt-2 text-gray-500 text-xs italic underline italic underline">Sincronizando cuotas globales...</p>
+            </div>
+            <div id="lista-partidos" class="space-y-4 italic underline italic underline"></div>
+        </section>
 
-    <div id="partidos-reales" class="space-y-4 italic underline">
-        <!-- Los partidos reales aparecerán aquí -->
+        <!-- SECCIÓN: MIS APUESTAS -->
+        <section id="sec-misapuestas" class="hidden space-y-4">
+            <button onclick="syncResults()" class="w-full bg-blue-600 p-3 rounded-xl font-bold text-xs mb-4 italic underline">
+                <i class="fa-solid fa-rotate mr-2"></i> COMPROBAR RESULTADOS REALES
+            </button>
+            <div id="lista-historial" class="space-y-3"></div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER NAV -->
+    <div class="fixed bottom-0 w-full glass p-4 flex justify-around border-t border-white/5">
+        <i class="fa-solid fa-house text-green-500 text-xl"></i>
+        <i class="fa-solid fa-chart-line text-gray-500 text-xl"></i>
+        <i class="fa-solid fa-user text-gray-500 text-xl"></i>
     </div>
 
     <script>
-        let saldo = parseFloat(localStorage.getItem('saldo_sim')) || 1000.00;
-        
-        function updateSaldo() {
-            document.getElementById('saldo').innerText = saldo.toFixed(2);
-            localStorage.setItem('saldo_sim', saldo);
+        // --- MOTOR LÓGICO NIVEL DIOS ---
+        let state = JSON.parse(localStorage.getItem('god_bet_data')) || {
+            saldo: 5000.00,
+            apuestas: [],
+            apiKey: ''
+        };
+
+        function saveKey() {
+            state.apiKey = document.getElementById('apiKey').value;
+            save();
+            document.getElementById('setup-section').classList.add('hidden');
+            fetchOdds();
         }
 
-        async function fetchRealOdds() {
-            const key = document.getElementById('apiKey').value;
-            if(!key) return alert("cd8d0051916f32591ab4732ab20e1f4d");
+        function save() {
+            localStorage.setItem('god_bet_data', JSON.stringify(state));
+            updateUI();
+        }
 
-            document.getElementById('loading').classList.remove('hidden');
-            document.getElementById('partidos-reales').innerHTML = '';
+        function updateUI() {
+            document.getElementById('saldo').innerText = state.saldo.toLocaleString('en-US', {minimumFractionDigits: 2});
+            if(state.apiKey) document.getElementById('setup-section').classList.add('hidden');
+        }
 
+        function switchTab(tab) {
+            document.getElementById('sec-envivo').classList.toggle('hidden', tab !== 'envivo');
+            document.getElementById('sec-misapuestas').classList.toggle('hidden', tab !== 'misapuestas');
+            document.getElementById('tab-envivo').classList.toggle('tab-active', tab === 'envivo');
+            document.getElementById('tab-misapuestas').classList.toggle('tab-active', tab === 'misapuestas');
+            if(tab === 'misapuestas') renderHistorial();
+        }
+
+        async function fetchOdds() {
+            if(!state.apiKey) return;
+            const loader = document.getElementById('loader');
+            loader.classList.remove('hidden');
+            
             try {
-                // Consultamos partidos de Fútbol (Soccer)
-                const response = await fetch(`https://api.the-odds-api.com/v4/sports/soccer_spain_la_liga/odds/?apiKey=${key}&regions=eu&markets=h2h`);
-                const data = await response.json();
-
-                if(data.error) throw new Error(data.error);
-
-                renderPartidos(data);
-            } catch (err) {
-                alert("Error al conectar con la API. Revisa tu Key.");
-                console.error(err);
+                // Obtenemos La Liga y Premier League
+                const res = await fetch(`https://api.the-odds-api.com/v4/sports/soccer_spain_la_liga/odds/?apiKey=${state.apiKey}&regions=eu&markets=h2h`);
+                const data = await res.json();
+                renderMatches(data);
+            } catch (e) {
+                alert("Error de conexión");
             } finally {
-                document.getElementById('loading').classList.add('hidden');
+                loader.classList.add('hidden');
             }
         }
 
-        function renderPartidos(partidos) {
-            const container = document.getElementById('partidos-reales');
-            container.innerHTML = '';
-
-            partidos.forEach(p => {
-                // Buscamos las cuotas de un corredor (ej: William Hill o Marathon Bet)
-                const bookmaker = p.bookmakers[0];
-                if(!bookmaker) return;
-                
-                const odds = bookmaker.markets[0].outcomes;
-                const home = odds.find(o => o.name === p.home_team);
-                const away = odds.find(o => o.name === p.away_team);
-                const draw = odds.find(o => o.name === 'Draw');
-
-                container.innerHTML += `
-                    <div class="match-card p-4 rounded-2xl">
-                        <div class="flex justify-between items-center mb-4 italic underline">
-                            <span class="text-[10px] text-gray-500 font-bold">${new Date(p.commence_time).toLocaleString()}</span>
-                            <span class="text-[10px] bg-white/10 px-2 py-0.5 rounded text-green-400">REAL TIME</span>
+        function renderMatches(matches) {
+            const container = document.getElementById('lista-partidos');
+            container.innerHTML = matches.map(m => {
+                const book = m.bookmakers[0]?.markets[0]?.outcomes || [];
+                if(book.length < 3) return '';
+                return `
+                    <div class="glass p-4 rounded-2xl bet-card">
+                        <div class="flex justify-between text-[10px] mb-3 text-gray-500 font-bold uppercase tracking-widest">
+                            <span>La Liga Santander</span>
+                            <span>ID: ${m.id.slice(-5)}</span>
                         </div>
-                        <div class="grid grid-cols-3 items-center mb-6 text-center italic underline">
-                            <div class="font-bold text-sm italic underline">${p.home_team}</div>
-                            <div class="text-gray-600 text-xs italic underline">vs</div>
-                            <div class="font-bold text-sm italic underline">${p.away_team}</div>
+                        <div class="flex justify-between items-center mb-5 text-center">
+                            <div class="flex-1 font-black text-sm uppercase italic underline">${m.home_team}</div>
+                            <div class="px-4 text-green-500 font-black italic underline">VS</div>
+                            <div class="flex-1 font-black text-sm uppercase italic underline">${m.away_team}</div>
                         </div>
-                        <div class="grid grid-cols-3 gap-3 italic underline">
-                            <button onclick="apostar('${p.home_team}', ${home.price})" class="bg-slate-800 hover:bg-green-600 p-2 rounded-xl transition-all italic underline">
-                                <span class="block text-[10px] text-gray-400 uppercase italic underline">Local</span>
-                                <span class="font-bold text-green-400 italic underline">${home.price}</span>
-                            </button>
-                            <button onclick="apostar('Empate', ${draw.price})" class="bg-slate-800 hover:bg-green-600 p-2 rounded-xl transition-all italic underline">
-                                <span class="block text-[10px] text-gray-400 uppercase italic underline">X</span>
-                                <span class="font-bold text-green-400 italic underline">${draw.price}</span>
-                            </button>
-                            <button onclick="apostar('${p.away_team}', ${away.price})" class="bg-slate-800 hover:bg-green-600 p-2 rounded-xl transition-all italic underline">
-                                <span class="block text-[10px] text-gray-400 uppercase italic underline">Visitante</span>
-                                <span class="font-bold text-green-400 italic underline">${away.price}</span>
-                            </button>
+                        <div class="grid grid-cols-3 gap-2">
+                            ${book.map(o => `
+                                <button onclick="placeBet('${m.id}', '${m.home_team} vs ${m.away_team}', '${o.name}', ${o.price})" class="bg-white/5 hover:bg-green-500 hover:text-black py-3 rounded-xl transition-all">
+                                    <span class="block text-[9px] text-gray-400 uppercase font-bold italic underline">${o.name.slice(0,3)}</span>
+                                    <span class="font-black text-sm italic underline">${o.price.toFixed(2)}</span>
+                                </button>
+                            `).join('')}
                         </div>
                     </div>
                 `;
-            });
+            }).join('');
         }
 
-        function apostar(equipo, cuota) {
-            const monto = prompt(`¿Cuánto quieres apostar por ${equipo}? (Cuota: ${cuota})`);
-            const m = parseFloat(monto);
-
-            if(m > 0 && m <= saldo) {
-                saldo -= m;
-                updateSaldo();
-                alert(`Apuesta realizada: $${m} a ${equipo}. \n\nEsto es una prueba, los resultados se validarán cuando el partido termine en la vida real.`);
-            } else {
-                alert("Saldo insuficiente o monto inválido");
+        function placeBet(matchId, matchName, pick, odd) {
+            const amount = prompt(`¿Monto a apostar por ${pick}?`, "100");
+            const val = parseFloat(amount);
+            if(val > 0 && val <= state.saldo) {
+                state.saldo -= val;
+                state.apuestas.push({
+                    id: matchId,
+                    name: matchName,
+                    pick: pick,
+                    odd: odd,
+                    amount: val,
+                    status: 'PENDIENTE',
+                    date: new Date().toISOString()
+                });
+                save();
+                alert("Apuesta procesada por el servidor.");
             }
         }
 
-        updateSaldo();
+        function renderHistorial() {
+            const container = document.getElementById('lista-historial');
+            container.innerHTML = state.apuestas.map(a => `
+                <div class="glass p-3 rounded-xl flex justify-between items-center border-l-4 ${a.status==='GANADA'?'border-green-500':'border-yellow-500'}">
+                    <div>
+                        <p class="text-[10px] text-gray-500 font-bold italic underline">${a.name}</p>
+                        <p class="text-xs font-black italic underline">${a.pick} <span class="text-gray-400 italic underline italic underline italic underline italic underline italic underline">@ ${a.odd}</span></p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs font-black italic underline">$${a.amount}</p>
+                        <p class="text-[10px] font-black italic underline ${a.status==='GANADA'?'text-green-500':(a.status==='PERDIDA'?'text-red-500':'text-yellow-500')}">${a.status}</p>
+                    </div>
+                </div>
+            `).reverse().join('');
+        }
+
+        async function syncResults() {
+            if(!state.apiKey) return;
+            const pendientes = state.apuestas.filter(a => a.status === 'PENDIENTE');
+            if(pendientes.length === 0) return alert("No hay apuestas pendientes.");
+
+            try {
+                const res = await fetch(`https://api.the-odds-api.com/v4/sports/soccer_spain_la_liga/scores/?apiKey=${state.apiKey}&daysFrom=3`);
+                const scores = await res.json();
+
+                state.apuestas.forEach(apuesta => {
+                    if(apuesta.status === 'PENDIENTE') {
+                        const partidoReal = scores.find(s => s.id === apuesta.id && s.completed === true);
+                        if(partidoReal) {
+                            // Lógica de ganador
+                            const homeScore = parseInt(partidoReal.scores.find(s => s.name === partidoReal.home_team).score);
+                            const awayScore = parseInt(partidoReal.scores.find(s => s.name === partidoReal.away_team).score);
+                            
+                            let resultadoReal = "";
+                            if(homeScore > awayScore) resultadoReal = partidoReal.home_team;
+                            else if(awayScore > homeScore) resultadoReal = partidoReal.away_team;
+                            else resultadoReal = "Draw"; // La API usa 'Draw' para empate
+
+                            if(apuesta.pick === resultadoReal || (apuesta.pick === "Empate" && resultadoReal === "Draw")) {
+                                apuesta.status = 'GANADA';
+                                state.saldo += (apuesta.amount * apuesta.odd);
+                            } else {
+                                apuesta.status = 'PERDIDA';
+                            }
+                        }
+                    }
+                });
+                save();
+                renderHistorial();
+                alert("Sincronización completa con los estadios.");
+            } catch (e) {
+                alert("Error al sincronizar resultados.");
+            }
+        }
+
+        updateUI();
+        if(state.apiKey) fetchOdds();
     </script>
 </body>
 </html>
